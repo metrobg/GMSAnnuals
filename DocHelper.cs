@@ -32,9 +32,7 @@ namespace fyiReporting.RdlCmd
                p_ward.Value = Convert.ToDecimal(ward);
 
                 cmd.Parameters.Add(p_ward);
-
-                cmd.ExecuteReader();
-                rs = cmd.ExecuteReader();
+                rs = cmd.ExecuteReader();      // execute the query
 
 
                 decimal ward_number;
@@ -119,7 +117,6 @@ namespace fyiReporting.RdlCmd
                 p_enddate.Value = enddate;
                 cmd.Parameters.Add(p_enddate);
 
-                cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
 
                 Console.WriteLine("Reading Ward Documents");
@@ -203,7 +200,6 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
 
-                cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
 
                 Console.WriteLine("Reading Ward Physicians Report Documents");
@@ -291,8 +287,7 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
 
-                cmd.ExecuteReader();
-                rs = cmd.ExecuteReader();
+               rs = cmd.ExecuteReader();
 
                 Console.WriteLine("Looking for Letter of Guardianship");
                 WardDocument wardDoc;
@@ -380,7 +375,6 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
 
-                cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
 
                 Console.WriteLine("Looking for Letter of Guardianship");
@@ -488,7 +482,6 @@ namespace fyiReporting.RdlCmd
                 cmd = new OracleCommand();
                 cmd.CommandText = strSQL;
                 cmd.Connection = connection;
-                cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
 
                 if (rs.HasRows)
@@ -647,7 +640,6 @@ namespace fyiReporting.RdlCmd
                 p_enddate.Value = enddate;
                 cmd.Parameters.Add(p_enddate);
 
-                cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
               
                 if (rs.HasRows)
@@ -693,7 +685,6 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
 
-                cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
 
                 //Console.WriteLine("Count Document Types");
@@ -742,8 +733,7 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
 
-                //cmd.ExecuteReader();
-                rs = cmd.ExecuteReader();
+               rs = cmd.ExecuteReader();
 
                 //Console.WriteLine("Count Document Types");
                 if (rs.HasRows)
@@ -790,8 +780,7 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
 
-                //cmd.ExecuteReader();
-                rs = cmd.ExecuteReader();
+               rs = cmd.ExecuteReader();
 
                 //Console.WriteLine("Count Document Types");
                 if (rs.HasRows)
@@ -834,7 +823,6 @@ namespace fyiReporting.RdlCmd
                 p_ward.Value = Convert.ToDecimal(ward);
                 cmd.Parameters.Add(p_ward);
                
-                //cmd.ExecuteReader();
                 rs = cmd.ExecuteReader();
 
                 //Console.WriteLine("Count Document Types");
