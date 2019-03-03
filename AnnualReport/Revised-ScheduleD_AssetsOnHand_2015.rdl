@@ -1,0 +1,1401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Description>
+  </Description>
+  <Author>
+  </Author>
+  <PageHeight>11in</PageHeight>
+  <PageWidth>8.5in</PageWidth>
+  <Width>7.5in</Width>
+  <TopMargin>.25in</TopMargin>
+  <LeftMargin>.5in</LeftMargin>
+  <RightMargin>.5in</RightMargin>
+  <BottomMargin>.25in</BottomMargin>
+  <DataSets>
+    <DataSet Name="Data">
+      <Query>
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>select sysdate,'1' as WARD_COURT_FILE_NO  from dual</CommandText>
+        <QueryParameters>
+          <QueryParameter Name=":StartDate">
+            <Value>=Parameters!StartDate.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":EndDate">
+            <Value>=Parameters!EndDate.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":Ward">
+            <Value>=Parameters!Ward.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="SYSDATE">
+          <DataField>SYSDATE</DataField>
+          <rd:TypeName>System.DateTime</rd:TypeName>
+        </Field>
+        <Field Name="WARD_COURT_FILE_NO">
+          <DataField>WARD_COURT_FILE_NO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="OTHER_CASH">
+      <Query>
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>="SELECT
+ ward_name, bank_ward,
+  bank_account,
+  bank_account_desc ,
+  SUM(scheduleb_amount) bank_balance 
+FROM
+  bank,
+  scheduleb,ward
+WHERE
+  1                             = 1
+
+and scheduleb_ward(+) = ward.ward_number 
+
+AND scheduleb.scheduleb_account = bank.bank_account
+AND bank_account               IN
+  (
+    SELECT
+      bank_account
+    FROM
+      bank
+    WHERE
+      bank_ward                = "+ Parameters!Ward.Value +" 
+    AND  (select sum(scheduleb_amount) from scheduleb ab where ab.SCHEDULEB_ACCOUNT = bank_account and ab.SCHEDULEB_DATE &lt; to_date('"+ Parameters!EndDate.Value +"' ,'mm/dd/yyyy')  ) &gt; 0  
+  )
+AND TRUNC(scheduleb_date) &lt;= to_date('"+ Parameters!EndDate.Value +"','mm/dd/yyyy')
+GROUP BY
+  ward_name,bank_ward,
+  bank_account,
+  bank_account_desc
+UNION ALL
+SELECT
+  ward.WARD_NAME,1,000,
+  'Operating Account',
+  get_schedulea_bal("+ Parameters!Ward.Value +" ,'"+ Parameters!EndDate.Value +"')  bank_balance
+FROM ward where ward_number = "+ Parameters!Ward.Value </CommandText>
+      </Query>
+      <Fields>
+        <Field Name="BANK_WARD">
+          <DataField>BANK_WARD</DataField>
+        </Field>
+        <Field Name="BANK_ACCOUNT">
+          <DataField>BANK_ACCOUNT</DataField>
+        </Field>
+        <Field Name="BANK_BALANCE">
+          <DataField>BANK_BALANCE</DataField>
+        </Field>
+        <Field Name="BANK_ACCOUNT_DESC">
+          <DataField>BANK_ACCOUNT_DESC</DataField>
+        </Field>
+        <Field Name="WARD_NAME">
+          <DataField>WARD_NAME</DataField>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="TOTAL_ASSETS">
+      <Query>
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>SELECT
+  TO_CHAR(WARD_NUMBER) WARD_NUMBER,
+  WARD_NAME,
+  (
+    SELECT
+      get_scheduleA_bal(:Ward,'12/31/2013') + get_scheduleB_bal_ALL(WARD_NUMBER,
+      '12/31/2013')                        + get_scheduleC_bal(WARD_NUMBER,
+      '12/31/2013')                        + get_scheduleD_bal(WARD_NUMBER,
+      '12/31/2013')                        + get_scheduleE_bal(WARD_NUMBER,
+      '12/31/2013')
+    FROM
+      dual
+  )
+  LY_BBF ,  
+
+ 
+  (
+    SELECT
+      NVL(SUM(SCHEDULEA_AMOUNT),0)
+    FROM
+      SCHEDULEA
+    WHERE
+      SCHEDULEA_WARD    = WARD_NUMBER
+    AND SCHEDULEA_TRANS_DATE &lt;= TO_DATE(:EndDate,'MM/DD/YYYY')
+  )
+  SCHEDA_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEB_AMOUNT),0)
+    FROM
+      SCHEDULEB
+    WHERE
+      SCHEDULEB_WARD    = WARD_NUMBER
+    AND SCHEDULEB_DATE &lt;= TO_DATE(:EndDate,'MM/DD/YYYY')
+  )
+  SCHEDB_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEC_AMOUNT),0)
+    FROM
+      SCHEDULEC
+    WHERE
+      SCHEDULEC_WARD          = WARD_NUMBER
+    AND SCHEDULEC_TRANS_DATE &lt;= TO_DATE(:EndDate,'MM/DD/YYYY')
+  )
+  SCHEDC_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULED_AMOUNT),0)
+    FROM
+      SCHEDULED
+    WHERE
+      SCHEDULED_WARD          = WARD_NUMBER
+    AND SCHEDULED_TRANS_DATE &lt;= TO_DATE(:EndDate,'MM/DD/YYYY')
+  )
+  SCHEDD_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEE_AMOUNT),0)
+    FROM
+      SCHEDULEE
+    WHERE
+      SCHEDULEE_WARD          = WARD_NUMBER
+    AND SCHEDULEE_TRANS_DATE &lt;= TO_DATE(:EndDate,'MM/DD/YYYY')
+  )
+  SCHEDE_BAL,NVL(GET_ASSET_MARKET_VALUE(:Ward ,:EndDate) + GET_SCHEDULEA_BAL(:Ward ,:EndDate) + GET_SCHEDULEB_BAL_ALL(:Ward ,:EndDate),0)   market
+FROM
+  WARD,
+  VENDOR,
+  ANNUAL_FEE_WAIVER,
+  BILLSEL
+WHERE
+  WARD_NUMBER                IN (:Ward)
+AND WARD_GUARDIAN_TYPE       &lt;&gt; 0
+AND VENDOR_NUMBER(+)          = WARD_ATTORNEY_NUMBER
+AND ANNUAL_FEE_WAIVER_WARD(+) = WARD_NUMBER
+AND WARD_NUMBER               = BILLSEL_WARD(+)</CommandText>
+        <QueryParameters>
+          <QueryParameter Name=":Ward">
+            <Value>=Parameters!Ward.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":EndDate">
+            <Value>=Parameters!EndDate.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="WARD_NUMBER">
+          <DataField>WARD_NUMBER</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="WARD_NAME">
+          <DataField>WARD_NAME</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="LY_BBF">
+          <DataField>LY_BBF</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="SCHEDA_BAL">
+          <DataField>SCHEDA_BAL</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="SCHEDB_BAL">
+          <DataField>SCHEDB_BAL</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="SCHEDC_BAL">
+          <DataField>SCHEDC_BAL</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="SCHEDD_BAL">
+          <DataField>SCHEDD_BAL</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="SCHEDE_BAL">
+          <DataField>SCHEDE_BAL</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="MARKET">
+          <DataField>MARKET</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="MarketValues">
+      <Query>
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>=" select * from (SELECT   
+  EI.SCHEDULEEID_SHORT_DESC DESCRIPTION,WARD_NAME,WARD_NUMBER,w.WARD_COURT_FILE_NO,
+  DECODE(
+  (
+    SELECT
+      SUM(SCHEDULEE_AMOUNT) FROM SCHEDULEE SE WHERE SE.SCHEDULEE_ID = EI.SCHEDULEEID_ID_NUMBER AND se.schedulee_trans_date &lt; = TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') ) ,1,1,(
+    SELECT
+      SUM(SCHEDULEE_AMOUNT) FROM SCHEDULEE SE WHERE SE.SCHEDULEE_ID = EI.SCHEDULEEID_ID_NUMBER AND se.schedulee_trans_date &lt; = TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') )) CARRY
+  ,
+  DECODE(
+ (
+    SELECT
+      SUM(SCHEDULEE_AMOUNT) FROM SCHEDULEE SE WHERE SE.SCHEDULEE_ID = EI.SCHEDULEEID_ID_NUMBER AND se.schedulee_trans_date &lt; = TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') ) ,1,0,
+  (
+    SELECT
+      SUM(SCHEDULEE_AMOUNT) FROM SCHEDULEE SE WHERE SE.SCHEDULEE_ID = EI.SCHEDULEEID_ID_NUMBER AND se.schedulee_trans_date &lt; = TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') )
+  ) MARKET
+FROM
+  SCHEDULEEID EI,WARD W
+WHERE
+  EI.SCHEDULEEID_WARD = "+ Parameters!Ward.Value +"     
+  AND EI.SCHEDULEEID_WARD = W.WARD_NUMBER  
+ union
+SELECT 
+  SCHEDULEDID_DESCRIPTION,WARD_NAME,WARD_NUMBER,WARD_COURT_FILE_NO,
+  DECODE(
+  (
+    SELECT
+      SUM(SCHEDULED_AMOUNT) FROM SCHEDULED SD WHERE SD.SCHEDULED_ID = EI.SCHEDULEDID_ID_NUMBER AND sd.scheduled_trans_date &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') ) ,1,1,(
+    SELECT
+      SUM(SCHEDULED_AMOUNT) FROM SCHEDULED SD WHERE SD.SCHEDULED_ID = EI.SCHEDULEDID_ID_NUMBER AND sd.scheduled_trans_date &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') )) CARRY
+  ,
+  DECODE(
+   (
+    SELECT
+      SUM(SCHEDULED_AMOUNT) FROM SCHEDULED SD WHERE SD.SCHEDULED_ID = EI.SCHEDULEDID_ID_NUMBER AND sd.scheduled_trans_date &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') ) ,1,0,
+  (
+    SELECT
+      SUM(SCHEDULED_AMOUNT) FROM SCHEDULED SD WHERE SD.SCHEDULED_ID = EI.SCHEDULEDID_ID_NUMBER AND sd.scheduled_trans_date &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','mm/dd/yyyy') )
+  ) MARKET
+FROM
+  SCHEDULEDID EI,WARD W
+WHERE
+  EI.SCHEDULEDID_WARD = "+ Parameters!Ward.Value +"     
+  AND EI.SCHEDULEDID_WARD = W.WARD_NUMBER  
+ UNION
+SELECT             
+  SCHEDULECID_FOLIO
+  ||' - '
+  ||SCHEDULECID_PROPERTY_ADD_1
+  ||' '
+  || SCHEDULECID_PROPERTY_ADD_2 DESCRIPTION,
+  WARD_NAME,
+  SCHEDULECID_WARD ,WARD_COURT_FILE_NO,
+   DECODE (
+  (
+    SELECT
+      NVL(SUM(SCHEDULEC_AMOUNT),0) FROM SCHEDULEC SC WHERE
+      SC.SCHEDULEC_WARD                = "+ Parameters!Ward.Value +"    
+    AND TRUNC(SC.SCHEDULEC_TRANS_DATE) &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  ,1,1, (
+    SELECT
+      NVL(SUM(SCHEDULEC_AMOUNT),0) FROM SCHEDULEC SC WHERE
+      SC.SCHEDULEC_WARD                = "+ Parameters!Ward.Value +"    
+    AND TRUNC(SC.SCHEDULEC_TRANS_DATE) &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )) CARRY,
+  DECODE (
+  (
+    SELECT
+      NVL(SUM(SCHEDULEC_AMOUNT),0) FROM SCHEDULEC SC WHERE
+      SC.SCHEDULEC_WARD                = "+ Parameters!Ward.Value +"    
+    AND TRUNC(SC.SCHEDULEC_TRANS_DATE) &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  ,1,0,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEC_AMOUNT),0)  FROM SCHEDULEC SC WHERE
+      SC.SCHEDULEC_WARD                = "+ Parameters!Ward.Value +"    
+    AND TRUNC(SC.SCHEDULEC_TRANS_DATE) &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  ) ) MARKET 
+  
+  
+   
+FROM
+  SCHEDULECID,
+  WARD,
+  SCHEDULEC
+WHERE
+  SCHEDULECID_WARD     = "+ Parameters!Ward.Value +"    
+AND WARD_NUMBER        = SCHEDULECID_WARD
+AND SCHEDULEC_WARD (+) = SCHEDULECID_WARD
+AND SCHEDULEC_ID (+)   = SCHEDULECID_ID_NUMBER
+AND SCHEDULEC_TRANS_DATE (+) &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')  ) where ( CARRY &gt; 0 OR MARKET &gt; 0)"</CommandText>
+        <QueryParameters>
+          <QueryParameter Name=":StartDate">
+            <Value>=Parameters!StartDate.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":EndDate">
+            <Value>=Parameters!EndDate.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":Ward">
+            <Value>=Parameters!Ward.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="DESCRIPTION">
+          <DataField>DESCRIPTION</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="WARD_NAME">
+          <DataField>WARD_NAME</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="WARD_NUMBER">
+          <DataField>WARD_NUMBER</DataField>
+          <TypeName>System.Int32</TypeName>
+        </Field>
+        <Field Name="WARD_COURT_FILE_NO">
+          <DataField>WARD_COURT_FILE_NO</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="CARRY">
+          <DataField>CARRY</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+        <Field Name="MARKET">
+          <DataField>MARKET</DataField>
+          <TypeName>System.Decimal</TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <PageHeader>
+    <Height>9.8pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+  </PageHeader>
+  <Body>
+    <ReportItems>
+      <Table Name="Table3" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <DataSetName>OTHER_CASH</DataSetName>
+        <NoRows>No Records Found for this schedule.</NoRows>
+        <Style>
+          <BorderStyle>
+            <Default>Solid</Default>
+          </BorderStyle>
+          <BorderColor />
+          <BorderWidth />
+        </Style>
+        <TableColumns>
+          <TableColumn>
+            <Width>414.2pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>131.4pt</Width>
+          </TableColumn>
+        </TableColumns>
+        <Header>
+          <TableRows>
+            <TableRow>
+              <Height>12 pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox27">
+                      <Value>=Fields!WARD_NAME.Value</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <TextAlign>Left</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontSize>10pt</FontSize>
+                        <PaddingLeft>100pt</PaddingLeft>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox79">
+                      <Value>
+                      </Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+            <TableRow>
+              <Height>14.4pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox75">
+                      <Value>Cash</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <TextAlign>Left</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontSize>12pt</FontSize>
+                        <VerticalAlign>Middle</VerticalAlign>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox76">
+                      <Value>
+                      </Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+            <TableRow>
+              <Height>12 pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox28">
+                      <Value>Account Description</Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox29">
+                      <Value>Balance</Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+          <RepeatOnNewPage>true</RepeatOnNewPage>
+        </Header>
+        <Details>
+          <TableRows>
+            <TableRow>
+              <Height>12 pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox30">
+                      <Value>=Fields!BANK_ACCOUNT_DESC.Value</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontSize>9pt</FontSize>
+                        <PaddingLeft>3pt</PaddingLeft>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox31">
+                      <Value>=Fields!BANK_BALANCE.Value</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>#,##0.00</Format>
+                        <FontSize>9pt</FontSize>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+        </Details>
+        <Footer>
+          <TableRows>
+            <TableRow>
+              <Height>12 pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox32">
+                      <Value>Cash Total</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <FontSize>9pt</FontSize>
+                        <PaddingLeft>3pt</PaddingLeft>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox33">
+                      <Value>=Sum(Fields!BANK_BALANCE.Value)</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>#,##0.00</Format>
+                        <FontWeight>Bold</FontWeight>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+        </Footer>
+        <Left>15.0pt</Left>
+        <Top>228.1pt</Top>
+        <PageBreakAtEnd>false</PageBreakAtEnd>
+      </Table>
+      <Textbox Name="Textbox62" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>10.00pt</Height>
+        <Width>72.27pt</Width>
+        <Value>="GPDC# " + Parameters!Ward.Value</Value>
+        <Left>15.0pt</Left>
+        <Top>184.9pt</Top>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>8pt</FontSize>
+        </Style>
+      </Textbox>
+      <Table Name="Table4">
+        <DataSetName>TOTAL_ASSETS</DataSetName>
+        <NoRows>Query returned no rows!</NoRows>
+        <Style>
+          <BorderStyle>
+            <Default>None</Default>
+            <Left>None</Left>
+            <Right>None</Right>
+            <Top>None</Top>
+            <Bottom>None</Bottom>
+          </BorderStyle>
+          <BorderColor>
+            <Default>White</Default>
+            <Left>White</Left>
+            <Right>White</Right>
+            <Top>White</Top>
+            <Bottom>White</Bottom>
+          </BorderColor>
+          <BorderWidth />
+        </Style>
+        <TableColumns>
+          <TableColumn>
+            <Width>94.0pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>1in</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>41.2pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>131.6pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>113.6pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>71.3pt</Width>
+          </TableColumn>
+        </TableColumns>
+        <Header>
+          <TableRows>
+            <TableRow>
+              <Height>15.9pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox63">
+                      <Value>Total Assets</Value>
+                      <Style>
+                        <TextAlign>Left</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontSize>12pt</FontSize>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox109" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                      <Value>Market Value:</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <TextAlign>Right</TextAlign>
+                        <FontSize>12pt</FontSize>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                  <ColSpan>2</ColSpan>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox67">
+                      <Value>=Fields!MARKET.Value</Value>
+                      <Style>
+                        <TextAlign>Left</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>$#,##0.00</Format>
+                        <PaddingLeft>3pt</PaddingLeft>
+                        <FontSize>12pt</FontSize>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox17">
+                      <Value>Carrying Value:</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <TextAlign>Right</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>$#,##0.00</Format>
+                        <PaddingRight>2pt</PaddingRight>
+                        <FontSize>12pt</FontSize>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox107" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                      <Value>=Fields!SCHEDA_BAL.Value + Fields!SCHEDB_BAL.Value + Fields!SCHEDC_BAL.Value + Fields!SCHEDD_BAL.Value + Fields!SCHEDE_BAL.Value</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <Format>$#,##0.00</Format>
+                        <FontSize>12pt</FontSize>
+                        <TextAlign>Left</TextAlign>
+                        <PaddingLeft>3pt</PaddingLeft>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+          <RepeatOnNewPage>true</RepeatOnNewPage>
+        </Header>
+        <Left>17.7pt</Left>
+        <Top>305.1pt</Top>
+        <PageBreakAtStart>false</PageBreakAtStart>
+        <PageBreakAtEnd>false</PageBreakAtEnd>
+      </Table>
+      <Textbox Name="Textbox37" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>14.72pt</Height>
+        <Width>123.84pt</Width>
+        <Value>RE:  GUARDIANSHIP OF</Value>
+        <Left>15.0pt</Left>
+        <Top>206.1pt</Top>
+        <Style>
+          <TextAlign>Left</TextAlign>
+          <PaddingRight>2pt</PaddingRight>
+          <BorderStyle>
+            <Default>None</Default>
+            <Left>None</Left>
+            <Right>None</Right>
+            <Top>None</Top>
+            <Bottom>None</Bottom>
+          </BorderStyle>
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>9pt</FontSize>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox60" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>10.00pt</Height>
+        <Width>72.27pt</Width>
+        <Value>="GPDC# " + Parameters!Ward.Value</Value>
+        <Left>15.0pt</Left>
+        <Top>45.9pt</Top>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>8pt</FontSize>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox61" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>14.72pt</Height>
+        <Width>123.84pt</Width>
+        <Value>RE:  GUARDIANSHIP OF</Value>
+        <Left>15.0pt</Left>
+        <Top>64.7pt</Top>
+        <Style>
+          <TextAlign>Left</TextAlign>
+          <PaddingRight>2pt</PaddingRight>
+          <BorderStyle>
+            <Default>None</Default>
+            <Left>None</Left>
+            <Right>None</Right>
+            <Top>None</Top>
+            <Bottom>None</Bottom>
+          </BorderStyle>
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>9pt</FontSize>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox66">
+        <Height>24.00pt</Height>
+        <Width>516.58pt</Width>
+        <Value>SCHEDULE D   -   Assets on Hand at Close of Accounting Period</Value>
+        <Left>27.10pt</Left>
+        <Top>14.34pt</Top>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontWeight>Bold</FontWeight>
+          <FontSize>12pt</FontSize>
+          <TextAlign>Center</TextAlign>
+        </Style>
+      </Textbox>
+      <Table Name="Table6">
+        <DataSetName>MarketValues</DataSetName>
+        <NoRows>No Records found for this schedule</NoRows>
+        <Style>
+          <BorderStyle>
+            <Default>Solid</Default>
+          </BorderStyle>
+          <BorderColor />
+          <BorderWidth />
+        </Style>
+        <TableColumns>
+          <TableColumn>
+            <Width>365.3pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>84.6pt</Width>
+          </TableColumn>
+          <TableColumn>
+            <Width>95.8pt</Width>
+          </TableColumn>
+        </TableColumns>
+        <Header>
+          <TableRows>
+            <TableRow>
+              <Height>12 pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox1">
+                      <Value>=Fields!WARD_NAME.Value + "              "  + Parameters!StartDate + " Through:" + Parameters!EndDate</Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                  <ColSpan>2</ColSpan>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox14">
+                      <Value>
+                      </Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+            <TableRow>
+              <Height>12.8pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox16">
+                      <Value>ASSETS OTHER THAN CASH  </Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox26">
+                      <Value>Estimated Value</Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox70">
+                      <Value>Carrying Value</Value>
+                      <Style>
+                        <TextAlign>Center</TextAlign>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <FontWeight>Bold</FontWeight>
+                        <BorderColor />
+                        <BorderWidth />
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+          <RepeatOnNewPage>true</RepeatOnNewPage>
+        </Header>
+        <Details>
+          <TableRows>
+            <TableRow>
+              <Height>12 pt</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox71">
+                      <Value>=Fields!DESCRIPTION.Value</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <PaddingLeft>2pt</PaddingLeft>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox5">
+                      <Value>=Fields!MARKET.Value</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <TextAlign>Right</TextAlign>
+                        <Format>#,##0.00</Format>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox73">
+                      <Value>=Fields!CARRY.Value</Value>
+                      <CanGrow>true</CanGrow>
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>#,##0.00</Format>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+        </Details>
+        <Left>16.6pt</Left>
+        <Top>89.1pt</Top>
+        <Footer>
+          <TableRows>
+            <TableRow>
+              <Height>.2in</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox2">
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <TextAlign>Right</TextAlign>
+                      </Style>
+                      <Value>
+                      </Value>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox3">
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>$#,##0.00</Format>
+                        <FontWeight>Bold</FontWeight>
+                      </Style>
+                      <Value>
+                      </Value>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox4">
+                      <Style>
+                        <BorderStyle>
+                          <Default>Solid</Default>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <Format>$#,##0.00</Format>
+                      </Style>
+                      <Value>
+                      </Value>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+            <TableRow>
+              <Height>.2in</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox6">
+                      <Value>
+                      </Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <TextAlign>Right</TextAlign>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox9">
+                      <Value>
+                      </Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>$#,##0.00</Format>
+                        <FontWeight>Bold</FontWeight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox11">
+                      <Value>
+                      </Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <Format>$#,##0.00</Format>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+            <TableRow>
+              <Height>.2in</Height>
+              <TableCells>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox12">
+                      <Value>OTHER ASSETS TOTAL</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <TextAlign>Right</TextAlign>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox13">
+                      <Value>=Sum(Fields!MARKET.Value)</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <Format>$#,##0.00</Format>
+                        <FontWeight>Bold</FontWeight>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+                <TableCell>
+                  <ReportItems>
+                    <Textbox Name="Textbox15">
+                      <Value>=Sum(Fields!CARRY.Value)</Value>
+                      <Style xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+                        <BorderStyle>
+                          <Default>None</Default>
+                          <Left>None</Left>
+                          <Right>None</Right>
+                          <Top>None</Top>
+                          <Bottom>None</Bottom>
+                        </BorderStyle>
+                        <BorderColor />
+                        <BorderWidth />
+                        <FontWeight>Bold</FontWeight>
+                        <Format>$#,##0.00</Format>
+                        <PaddingRight>2pt</PaddingRight>
+                      </Style>
+                    </Textbox>
+                  </ReportItems>
+                </TableCell>
+              </TableCells>
+            </TableRow>
+          </TableRows>
+        </Footer>
+        <PageBreakAtEnd>true</PageBreakAtEnd>
+      </Table>
+    </ReportItems>
+    <Height>733.0pt</Height>
+    <Columns>1</Columns>
+  </Body>
+  <PageFooter>
+    <Height>16.2pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+    <ReportItems>
+      <Textbox Name="Textbox8" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>12pt</Height>
+        <Width>3in</Width>
+        <Value>=Parameters!User.Value &amp; Globals!ExecutionTime.Value</Value>
+        <Left>184.7pt</Left>
+        <Top>248.9pt</Top>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>8pt</FontSize>
+          <TextAlign>Center</TextAlign>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox10" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Top>248.9pt</Top>
+        <Left>352.8pt</Left>
+        <Height>12 pt</Height>
+        <Width>3in</Width>
+        <Value>=Globals!PageNumber.Value + ' of ' + Globals!TotalPages.Value</Value>
+        <Style>
+          <FontSize>8pt</FontSize>
+          <FontWeight>Normal</FontWeight>
+          <TextAlign>Right</TextAlign>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox7" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>13.50pt</Height>
+        <Width>146.07pt</Width>
+        <Value>Legal-ScheduleE (Docket Code 214)</Value>
+        <Left>0.6pt</Left>
+        <Top>248.5pt</Top>
+        <Style>
+          <TextAlign>Left</TextAlign>
+          <PaddingRight>2pt</PaddingRight>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>8pt</FontSize>
+        </Style>
+      </Textbox>
+      <Textbox Name="Textbox64" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>14.25pt</Height>
+        <Width>240.83pt</Width>
+        <Value>Legal-ScheduleD_AssetsOnHand_2015 (Docket Code 214)</Value>
+        <Left>1.6pt</Left>
+        <Top>1.4pt</Top>
+        <Style>
+          <TextAlign>Left</TextAlign>
+          <PaddingRight>2pt</PaddingRight>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>8pt</FontSize>
+        </Style>
+      </Textbox>
+    </ReportItems>
+  </PageFooter>
+  <DataElementName>Report</DataElementName>
+  <DataElementStyle>AttributeNormal</DataElementStyle>
+  <ReportParameters>
+    <ReportParameter Name="Ward">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>6615</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>Ward</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="EndDate">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>12/31/2014</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>EndDate</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="StartDate">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>01/01/2014</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>StartDate</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="User">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>Prepared for HINE, S on </Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>User</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="FileNo">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <DataSetReference>
+          <DataSetName>Data</DataSetName>
+          <ValueField>WARD_COURT_FILE_NO</ValueField>
+        </DataSetReference>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>FileNo</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <DataSources>
+    <DataSource Name="DS1">
+      <ConnectionProperties>
+        <DataProvider>Oracle</DataProvider>
+        <ConnectString>user id=develope;password=merlin;data source=GPDC</ConnectString>
+        <IntegratedSecurity>false</IntegratedSecurity>
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+</Report>

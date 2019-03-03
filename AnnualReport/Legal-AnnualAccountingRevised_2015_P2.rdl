@@ -1,0 +1,1041 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Description>
+  </Description>
+  <Author>
+  </Author>
+  <PageHeight>11in</PageHeight>
+  <PageWidth>8.5in</PageWidth>
+  <Width>7.5in</Width>
+  <TopMargin>.25in</TopMargin>
+  <LeftMargin>.25in</LeftMargin>
+  <RightMargin>.25in</RightMargin>
+  <BottomMargin>.25in</BottomMargin>
+  <DataSets>
+    <DataSet Name="Data">
+      <Query>
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>="SELECT
+  TO_CHAR(WARD_NUMBER) WARD_NUMBER,
+  WARD_NAME,
+  WARD_COURT_FILE_NO,
+  WARD_DIVISION,
+  TO_CHAR(ANNUAL_FEE_WAIVER_GRANTED,'MM/DD/YYYY') ANNUAL_FEE_WAIVER_GRANTED,  
+  (
+    SELECT
+      get_scheduleA_bal(WARD_NUMBER ,'"+ Parameters!StartDate.Value +"'    )    + 
+      get_scheduleB_bal_ALL(WARD_NUMBER,'"+ Parameters!StartDate.Value +"') + 
+      get_scheduleC_bal(WARD_NUMBER,'"+ Parameters!StartDate.Value +"')     + 
+      get_scheduleD_bal(WARD_NUMBER,'"+ Parameters!StartDate.Value +"')     + 
+      (SELECT sum(SCHEDULEE_AMOUNT) FROM SCHEDULEE
+where SCHEDULEE_WARD = "+ Parameters!Ward.Value +"  and SCHEDULEE_TRANS_DATE &lt; to_date('"+ Parameters!StartDate.Value +"','mm/dd/yyyy'))
+    FROM
+      dual
+  )
+  LY_BBF ,  
+  (
+
+SELECT  
+sum(receipt) receipts
+FROM
+  (
+    SELECT
+      SCHEDULEA_TRANS_DATE,
+      DECODE(SCHEDULEA_TRANS_TYPE,'R','DEPOSIT'
+      ||'-'
+      ||SCHEDULEA_DESCRIPTION, VENDOR_NAME
+      ||'-'
+      ||SCHEDULEA_DESCRIPTION) SCHEDULEA_DESCRIPTION,
+      TO_NUMBER(DECODE(SCHEDULEA_TRANS_TYPE,'R','',SCHEDULEA_AMOUNT * -1))
+      DISBUR,
+      TO_NUMBER(DECODE(SCHEDULEA_TRANS_TYPE,'D','',SCHEDULEA_AMOUNT)) RECEIPT 
+       
+    FROM
+      SCHEDULEA,
+      WARD,
+      VENDOR
+    WHERE
+      WARD_NUMBER      ="+ Parameters!Ward.Value +"  
+    AND SCHEDULEA_WARD = WARD_NUMBER
+    AND TRUNC(SCHEDULEA_TRANS_DATE) BETWEEN TO_DATE('"+ Parameters!StartDate.Value +"','MM/DD/YYYY')
+      AND TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+     AND schedulea_trans_type = 'R'
+    AND SCHEDULEA_VENDOR = VENDOR_NUMBER(+)
+    UNION ALL
+    SELECT
+      SCHEDULEB_DATE SCHEDULEA_TRANS_DATE,
+      scheduleb.scheduleb_desc,
+       TO_NUMBER(DECODE(SCHEDULEB_TYPE,'D','',SCHEDULEB_AMOUNT * -1))
+      DISBUR,
+      TO_NUMBER(DECODE(SCHEDULEB_TYPE,'W','',SCHEDULEB_AMOUNT)) RECEIPT 
+      
+    FROM
+       SCHEDULEB
+    WHERE
+      scheduleb.scheduleb_ward             ="+ Parameters!Ward.Value +"     
+    AND SCHEDULEB_DATE  BETWEEN TO_DATE('"+ Parameters!StartDate.Value +"','MM/DD/YYYY') AND
+      TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )   WHERE  receipt &gt; 0   
+
+
+
+  ) SCHEDA_IN,
+  (
+  (
+    SELECT
+      NVL(SUM(SCHEDULEA_AMOUNT),0)
+    FROM
+      SCHEDULEA
+    WHERE
+       
+    SCHEDULEA_WARD = "+ Parameters!Ward.Value +"  --WARD_NUMBER
+    AND TRUNC(SCHEDULEA_TRANS_DATE) BETWEEN TO_DATE('"+ Parameters!StartDate.Value +"','MM/DD/YYYY')
+      AND TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+     AND schedulea_trans_type = 'D'
+  )
+  +
+  (
+    SELECT
+      NVL(SUM(SCHEDULEb_AMOUNT),0)
+    FROM
+      scheduleb
+    WHERE
+      scheduleb_ward   = WARD_NUMBER
+    AND scheduleb_type = 'W'
+    AND TRUNC(scheduleb_date) BETWEEN to_date('"+ Parameters!StartDate.Value +"','mm/dd/yyyy') AND
+      TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  ) SCHEDA_OUT,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEA_AMOUNT),0)
+    FROM
+      SCHEDULEA
+    WHERE
+      SCHEDULEA_WARD    = WARD_NUMBER
+    AND SCHEDULEA_TRANS_DATE &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  SCHEDA_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEB_AMOUNT),0)
+    FROM
+      SCHEDULEB
+    WHERE
+      SCHEDULEB_WARD    = WARD_NUMBER
+    AND SCHEDULEB_DATE &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  SCHEDB_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEC_AMOUNT),0)
+    FROM
+      SCHEDULEC
+    WHERE
+      SCHEDULEC_WARD          = WARD_NUMBER
+    AND SCHEDULEC_TRANS_DATE &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  SCHEDC_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULED_AMOUNT),0)
+    FROM
+      SCHEDULED
+    WHERE
+      SCHEDULED_WARD          = WARD_NUMBER
+    AND SCHEDULED_TRANS_DATE &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  SCHEDD_BAL,
+  (
+    SELECT
+      NVL(SUM(SCHEDULEE_AMOUNT),0)
+    FROM
+      SCHEDULEE
+    WHERE
+      SCHEDULEE_WARD          = WARD_NUMBER
+    AND SCHEDULEE_TRANS_DATE &lt;= TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+  )
+  SCHEDE_BAL,
+  TO_CHAR(WARD_START_STATUS_DATE,'MM/DD/YYYY') WARD_START_STATUS_DATE,
+  '"+ Parameters!StartDate.Value +"'  BILLSEL_BEG_ANNUAL_DATE,
+'"+ Parameters!EndDate.Value +"'  BILLSEL_END_ANNUAL_DATE,
+  flip_name(VENDOR_NAME) VENDOR_NAME,
+  VENDOR_ADDRESS_1,
+  VENDOR_ADDRESS_2,
+  VENDOR_ADDRESS_3,
+  VENDOR_TELEPHONE,
+  VENDOR_CONTACT,
+(select sum(gain + loss )  
+from
+(SELECT
+  DECODE(SIGN(SCHEDULEC_AMOUNT),1, SCHEDULEC_AMOUNT,-1,0) gain ,
+  DECODE(SIGN(SCHEDULEC_AMOUNT),                    -1, SCHEDULEC_AMOUNT,1,0)
+  loss
+FROM
+  schedulec c,
+  ward w,
+  schedulecid cid
+WHERE
+  1                   = 1
+AND SCHEDULEC_AMOUNT !=0
+AND schedulec_ward    = "+ Parameters!Ward.Value +"  
+AND c.schedulec_ward  = cid.schedulecid_ward
+AND W.WARD_NUMBER     = c.schedulec_ward
+AND c.schedulec_id    = cid.schedulecid_id_number
+AND TRUNC(c.schedulec_trans_date) BETWEEN TO_DATE('"+ Parameters!StartDate.Value +"','MM/DD/YYYY') AND
+  TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+UNION ALL
+SELECT
+  DECODE(SIGN(SCHEDULEd_AMOUNT),1, SCHEDULEd_AMOUNT,-1,0) gain,
+  DECODE(SIGN(SCHEDULEd_AMOUNT),                    -1, SCHEDULEd_AMOUNT,1,0)
+  loss
+FROM
+  scheduled d,
+  WARD W,
+  scheduledid did
+WHERE
+  1                   = 1
+AND SCHEDULED_AMOUNT !=0
+AND scheduled_ward    = "+ Parameters!Ward.Value +"  
+AND d.scheduled_ward  = did.scheduledid_ward
+AND d.scheduled_id    = did.scheduledid_id_number
+AND W.WARD_NUMBER     = d.scheduled_ward
+AND TRUNC(d.scheduled_trans_date) BETWEEN TO_DATE('"+ Parameters!StartDate.Value +"','MM/DD/YYYY') AND
+  TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY')
+UNION ALL
+SELECT
+  DECODE(SIGN(SCHEDULEE_AMOUNT),1, SCHEDULEE_AMOUNT,-1,0) gain,
+  DECODE(SIGN(SCHEDULEE_AMOUNT),                    -1, SCHEDULEE_AMOUNT,1,0)
+  loss
+FROM
+  schedulee e ,
+  WARD W,
+  scheduleeid ecid
+WHERE
+  1                   =1
+AND SCHEDULEE_AMOUNT !=0
+AND e.schedulee_ward  = "+ Parameters!Ward.Value +"  
+AND e.schedulee_ward  = ecid.scheduleeid_ward
+AND W.WARD_NUMBER     = E.SCHEDULEE_WARD
+AND TRUNC(e.schedulee_trans_date) BETWEEN TO_DATE('"+ Parameters!StartDate.Value +"','MM/DD/YYYY') AND
+  TO_DATE('"+ Parameters!EndDate.Value +"','MM/DD/YYYY') )) GAIN,NVL(GET_ASSET_MARKET_VALUE("+ Parameters!Ward.Value +"  ,'"+ Parameters!EndDate.Value +"') + GET_SCHEDULEA_BAL("+ Parameters!Ward.Value +"  ,'"+ Parameters!EndDate.Value +"') + GET_SCHEDULEB_BAL_ALL("+ Parameters!Ward.Value +"  ,'"+ Parameters!EndDate.Value +"'),0) CurrentVal
+FROM
+  WARD,
+  VENDOR,
+  ANNUAL_FEE_WAIVER 
+  
+WHERE
+  WARD_NUMBER                IN ("+ Parameters!Ward.Value +"  )
+AND WARD_GUARDIAN_TYPE       &lt;&gt; 0
+AND VENDOR_NUMBER(+)          = WARD_ATTORNEY_NUMBER
+AND ANNUAL_FEE_WAIVER_WARD(+) = WARD_NUMBER"</CommandText>
+        <QueryParameters>
+          <QueryParameter Name=":Ward">
+            <Value>=Parameters!Ward.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":StartDate">
+            <Value>=Parameters!StartDate.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":EndDate">
+            <Value>=Parameters!EndDate.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="WARD_NUMBER">
+          <DataField>WARD_NUMBER</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="WARD_NAME">
+          <DataField>WARD_NAME</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="WARD_COURT_FILE_NO">
+          <DataField>WARD_COURT_FILE_NO</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="WARD_DIVISION">
+          <DataField>WARD_DIVISION</DataField>
+          <rd:TypeName>System.Int16</rd:TypeName>
+        </Field>
+        <Field Name="ANNUAL_FEE_WAIVER_GRANTED">
+          <DataField>ANNUAL_FEE_WAIVER_GRANTED</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="LY_BBF">
+          <DataField>LY_BBF</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDA_IN">
+          <DataField>SCHEDA_IN</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDA_OUT">
+          <DataField>SCHEDA_OUT</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDA_BAL">
+          <DataField>SCHEDA_BAL</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDB_BAL">
+          <DataField>SCHEDB_BAL</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDC_BAL">
+          <DataField>SCHEDC_BAL</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDD_BAL">
+          <DataField>SCHEDD_BAL</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="SCHEDE_BAL">
+          <DataField>SCHEDE_BAL</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="WARD_START_STATUS_DATE">
+          <DataField>WARD_START_STATUS_DATE</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="BILLSEL_BEG_ANNUAL_DATE">
+          <DataField>BILLSEL_BEG_ANNUAL_DATE</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="BILLSEL_END_ANNUAL_DATE">
+          <DataField>BILLSEL_END_ANNUAL_DATE</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_NAME">
+          <DataField>VENDOR_NAME</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_ADDRESS_1">
+          <DataField>VENDOR_ADDRESS_1</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_ADDRESS_2">
+          <DataField>VENDOR_ADDRESS_2</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_ADDRESS_3">
+          <DataField>VENDOR_ADDRESS_3</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_TELEPHONE">
+          <DataField>VENDOR_TELEPHONE</DataField>
+          <rd:TypeName>System.Int64</rd:TypeName>
+        </Field>
+        <Field Name="VENDOR_CONTACT">
+          <DataField>VENDOR_CONTACT</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="GAIN">
+          <DataField>GAIN</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+        <Field Name="CURRENTVAL">
+          <DataField>CURRENTVAL</DataField>
+          <rd:TypeName>System.Decimal</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <PageHeader>
+    <Height>1.4pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+  </PageHeader>
+  <Body>
+    <Height>807.0pt</Height>
+    <ReportItems>
+      <List Name="List1">
+        <DataSetName>Data</DataSetName>
+        <Height>791.10pt</Height>
+        <NoRows>Query returned no rows!</NoRows>
+        <Width>574.35pt</Width>
+        <Left>0.00pt</Left>
+        <Top>0.00pt</Top>
+        <ReportItems>
+          <Textbox Name="Textbox1" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>10pt</Height>
+            <Width>1in</Width>
+            <Value>="GPDC#  " + Fields!WARD_NUMBER.Value</Value>
+            <Left>.7pt</Left>
+            <Top>3.0pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>8pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox2" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>15.47pt</Height>
+            <Width>172.79pt</Width>
+            <Value>IN RE:  GUARDIANSHIP OF  </Value>
+            <Left>10pt</Left>
+            <Top>106pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>12pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox6" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>16.21pt</Height>
+            <Width>238.99pt</Width>
+            <Value>=Fields!WARD_NAME.Value</Value>
+            <Left>10.00pt</Left>
+            <Top>132.00pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox7" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>14.00pt</Height>
+            <Width>120.00pt</Width>
+            <Value>="FILE NO:   " + Fields!WARD_COURT_FILE_NO.Value</Value>
+            <Left>321.0pt</Left>
+            <Top>108.2pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox8" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>14.00pt</Height>
+            <Width>120.00pt</Width>
+            <Value>="DIVISION: " + Fields!WARD_DIVISION.Value</Value>
+            <Left>321.0pt</Left>
+            <Top>129.0pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox9" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>15.01pt</Height>
+            <Width>395.23pt</Width>
+            <Value>ANNUAL ACCOUNTING OF GUARDIAN(S)</Value>
+            <Left>179.2pt</Left>
+            <Top>176.8pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextAlign>Left</TextAlign>
+              <FontWeight>Bold</FontWeight>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox10" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>21.05pt</Height>
+            <Width>453.97pt</Width>
+            <Value>="From:  " + Parameters!StartDate.Value + " Through: " + Parameters!EndDate.Value  </Value>
+            <Left>58.6pt</Left>
+            <Top>224.0pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextAlign>Left</TextAlign>
+              <FontWeight>Bold</FontWeight>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox4" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>16.26pt</Height>
+            <Width>148.21pt</Width>
+            <Value>Estimated Current Value</Value>
+            <Left>314.8pt</Left>
+            <Top>289.1pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox11" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Top>341.9pt</Top>
+            <Left>464pt</Left>
+            <Width>90.34pt</Width>
+            <Height>12.50pt</Height>
+            <Value>=Fields!SCHEDA_IN.Value</Value>
+            <CanGrow>false</CanGrow>
+            <Style>
+              <PaddingRight>2 pt</PaddingRight>
+              <TextAlign>right</TextAlign>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <Format>$###,##0.00</Format>
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox12" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Capital Transactions and Adjustments</Value>
+            <Left>45.8pt</Left>
+            <Top>386.5pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox13" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Top>403.3pt</Top>
+            <Left>464pt</Left>
+            <Width>90.34pt</Width>
+            <Height>12.5pt</Height>
+            <Value>=Fields!GAIN.Value</Value>
+            <CanGrow>false</CanGrow>
+            <Style>
+              <PaddingRight>2 pt</PaddingRight>
+              <TextAlign>right</TextAlign>
+              <FontFamily>Arial</FontFamily>
+              <Format>$###,##0.00</Format>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox20" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>216.81pt</Width>
+            <Value>Starting Balance</Value>
+            <Left>48.1pt</Left>
+            <Top>301.9pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>Underline</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox21" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Top>317.5pt</Top>
+            <Left>464pt</Left>
+            <Width>90.34pt</Width>
+            <Height>12.50pt</Height>
+            <Value>=Fields!LY_BBF.Value</Value>
+            <CanGrow>false</CanGrow>
+            <Style>
+              <PaddingRight>2 pt</PaddingRight>
+              <TextAlign>right</TextAlign>
+              <FontFamily>Arial</FontFamily>
+              <Format>$###,##0.00</Format>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox22" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>17.27pt</Height>
+            <Width>566.15pt</Width>
+            <Value>SUMMARY</Value>
+            <Left>8.60pt</Left>
+            <Top>265.90pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextAlign>Center</TextAlign>
+              <FontWeight>Bold</FontWeight>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox23" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.49pt</Height>
+            <Width>25.62pt</Width>
+            <Value>I.</Value>
+            <Left>18.8pt</Left>
+            <Top>301.9pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox24" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Assets on Hand at Beginning of Accounting Period</Value>
+            <Left>47.9pt</Left>
+            <Top>317.5pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox25" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Schedule A Receipts</Value>
+            <Left>46.1pt</Left>
+            <Top>341.9pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox26" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.49pt</Height>
+            <Width>25.62pt</Width>
+            <Value>II.</Value>
+            <Left>16.7pt</Left>
+            <Top>342.3pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox3" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Schedule B Disbursements</Value>
+            <Left>45.6pt</Left>
+            <Top>364.5pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox27" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.49pt</Height>
+            <Width>25.62pt</Width>
+            <Value>III.</Value>
+            <Left>15.4pt</Left>
+            <Top>364.5pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox28" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Top>364.5pt</Top>
+            <Left>464pt</Left>
+            <Width>90.34pt</Width>
+            <Height>12.50pt</Height>
+            <Value>=Fields!SCHEDA_OUT.Value</Value>
+            <CanGrow>false</CanGrow>
+            <Style>
+              <PaddingRight>2 pt</PaddingRight>
+              <TextAlign>right</TextAlign>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <Format>$###,##0.00</Format>
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox29" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.49pt</Height>
+            <Width>25.62pt</Width>
+            <Value>IV.</Value>
+            <Left>16.0pt</Left>
+            <Top>386.5pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox30" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Schedule C: Net Gain or (Loss)</Value>
+            <Left>46.4pt</Left>
+            <Top>403.3pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox31" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.49pt</Height>
+            <Width>25.62pt</Width>
+            <Value>V.</Value>
+            <Left>16.7pt</Left>
+            <Top>424.0pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox32" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Assets on Hand at Close of Accounting Period</Value>
+            <Left>46.5pt</Left>
+            <Top>424.0pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox33" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>262.0pt</Width>
+            <Value>Schedule D: Cash and Other Assets</Value>
+            <Left>47.1pt</Left>
+            <Top>440.8pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox34" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Top>440.0pt</Top>
+            <Left>464pt</Left>
+            <Width>90.34pt</Width>
+            <Height>12.50pt</Height>
+            <Value>=Fields!SCHEDA_BAL.Value + Fields!SCHEDB_BAL.Value + Fields!SCHEDC_BAL.Value + Fields!SCHEDD_BAL.Value + Fields!SCHEDE_BAL.Value</Value>
+            <CanGrow>false</CanGrow>
+            <Style>
+              <PaddingRight>2 pt</PaddingRight>
+              <TextAlign>right</TextAlign>
+              <FontFamily>Arial</FontFamily>
+              <Format>$###,##0.00</Format>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox14" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>17.78pt</Height>
+            <Width>516.46pt</Width>
+            <Value>Entries on Summary are to be taken from totals on Scheduled A, B, C and D.
+
+</Value>
+            <Left>29.3pt</Left>
+            <Top>568.1pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox15" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.5pt</Height>
+            <Width>58.77pt</Width>
+            <Value>NOTE:</Value>
+            <Left>29.8pt</Left>
+            <Top>497.4pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox16" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.49pt</Height>
+            <Width>414.83pt</Width>
+            <Value>Refer to Fla. Prob. R  _____________________________________________</Value>
+            <Left>106.20pt</Left>
+            <Top>496.70pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox17" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>34.37pt</Height>
+            <Width>517.99pt</Width>
+            <Value>The Summary and Schedules A, B, C and D are to constitute the full accounting. Every transaction occuring during the accounting period should be reflected on the Schedules.</Value>
+            <Left>28.6pt</Left>
+            <Top>594.8pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox18" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>46.41pt</Height>
+            <Width>520.22pt</Width>
+            <Value>All purchases and sales, all adjustments to the asset acquisition or carrying value of any asset, and any orher significant transactions that affect the property (such as stock splits) should be described on Schedule C.</Value>
+            <Left>26.5pt</Left>
+            <Top>640.8pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+              <TextDecoration>None</TextDecoration>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox35" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>16.27pt</Height>
+            <Width>97.83pt</Width>
+            <Value>Carrying Value</Value>
+            <Left>467.4pt</Left>
+            <Top>289.3pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Arial</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>false</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox36" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Top>440pt</Top>
+            <Left>335.3pt</Left>
+            <Width>90.34pt</Width>
+            <Height>12.50pt</Height>
+            <Value>=Fields!CURRENTVAL.Value</Value>
+            <CanGrow>false</CanGrow>
+            <Style>
+              <PaddingRight>2 pt</PaddingRight>
+              <TextAlign>right</TextAlign>
+              <FontFamily>Arial</FontFamily>
+              <Format>$###,##0.00</Format>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox5" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>48.13pt</Height>
+            <Width>559.70pt</Width>
+            <Value>IN THE CIRCUIT COURT OF THE 11TH JUDICIAL CIRCUIT.
+ IN AND FOR MIAMI-DADE COUNTY, FLORIDA
+ PROBATE DIVISION</Value>
+            <Left>5.00pt</Left>
+            <Top>24.70pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontWeight>Bold</FontWeight>
+              <FontSize>12pt</FontSize>
+              <TextAlign>Center</TextAlign>
+            </Style>
+          </Textbox>
+        </ReportItems>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+        </Style>
+      </List>
+    </ReportItems>
+    <Columns>1</Columns>
+  </Body>
+  <PageFooter>
+    <Height>14pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+    <ReportItems>
+      <Textbox Name="Textbox19" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+        <Height>15.75pt</Height>
+        <Width>252.05pt</Width>
+        <Value>Legal-AnnualAccountingRevised_2015_P2 (Docket Code 214)</Value>
+        <Left>1.30pt</Left>
+        <Top>0.50pt</Top>
+        <Style>
+          <TextAlign>Left</TextAlign>
+          <PaddingRight>2pt</PaddingRight>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+          <FontSize>8pt</FontSize>
+        </Style>
+      </Textbox>
+    </ReportItems>
+  </PageFooter>
+  <DataElementName>Report</DataElementName>
+  <DataElementStyle>AttributeNormal</DataElementStyle>
+  <DataSources>
+    <DataSource Name="DS1">
+      <ConnectionProperties>
+        <DataProvider>Oracle</DataProvider>
+        <ConnectString>user id=develope;password=merlin;data source=GPDC</ConnectString>
+        <IntegratedSecurity>false</IntegratedSecurity>
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+  <ReportParameters>
+    <ReportParameter Name="Ward">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>3566</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>Ward</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="StartDate">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>01/01/2014</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>Starting</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="EndDate">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>12/31/2014</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>Ending</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+</Report>

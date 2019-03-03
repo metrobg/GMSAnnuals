@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Description>
+  </Description>
+  <Author>
+  </Author>
+  <PageHeight>11in</PageHeight>
+  <PageWidth>8.5in</PageWidth>
+  <Width>7.5in</Width>
+  <TopMargin>.25in</TopMargin>
+  <LeftMargin>.25in</LeftMargin>
+  <RightMargin>.25in</RightMargin>
+  <BottomMargin>.25in</BottomMargin>
+  <PageHeader>
+    <Height>0.0pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+  </PageHeader>
+  <Body>
+    <Height>158.5pt</Height>
+    <ReportItems>
+      <List Name="List1">
+        <Height>165.65pt</Height>
+        <Width>548.17pt</Width>
+        <Left>0.00pt</Left>
+        <Top>0.00pt</Top>
+        <ReportItems>
+          <Textbox Name="Textbox9" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.75pt</Height>
+            <Width>18.85pt</Width>
+            <Value>8.</Value>
+            <Left>12.8pt</Left>
+            <Top>15.0pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox10" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.75pt</Height>
+            <Width>18.85pt</Width>
+            <Value>9.</Value>
+            <Left>12.8pt</Left>
+            <Top>92.2pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox13" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>25.16pt</Height>
+            <Width>494.97pt</Width>
+            <Value>The following social and personal services are available to the Ward:</Value>
+            <Left>33.6pt</Left>
+            <Top>15.0pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+            <Visibility>
+              <Hidden>=Globals!PageNumber &gt; 1</Hidden>
+              <ToggleItem>
+              </ToggleItem>
+            </Visibility>
+            <CanGrow>true</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox14" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>24.08pt</Height>
+            <Width>495.72pt</Width>
+            <Value>Restoration Considerations:</Value>
+            <Left>33.6pt</Left>
+            <Top>92.2pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+            <Visibility>
+              <ToggleItem>
+              </ToggleItem>
+            </Visibility>
+            <CanGrow>true</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox1">
+            <Height>33.04pt</Height>
+            <Width>490.09pt</Width>
+            <Value>=Fields!QUESTION8.Value</Value>
+            <Left>34.1pt</Left>
+            <Top>45.1pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+          <Textbox Name="Textbox2">
+            <Height>21.79pt</Height>
+            <Width>496.12pt</Width>
+            <Value>=Fields!QUESTION9.Value</Value>
+            <Left>32.80pt</Left>
+            <Top>122.10pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+            </Style>
+          </Textbox>
+        </ReportItems>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+        </Style>
+        <DataSetName>Data</DataSetName>
+      </List>
+    </ReportItems>
+    <Columns>1</Columns>
+  </Body>
+  <PageFooter>
+    <Height>0.0pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+  </PageFooter>
+  <DataElementName>Report</DataElementName>
+  <DataElementStyle>AttributeNormal</DataElementStyle>
+  <DataSets>
+    <DataSet Name="Data">
+      <Query >
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>SELECT RADIOGROUP1||' '||RADIOGROUP1_DESC QUESTION5,
+              RADIOGROUP2||' '||RADIOGROUP2_DESC QUESTION6,
+              RADIOGROUP3||' '||RADIOGROUP3_DESC QUESTION7,
+              RADIOGROUP4||' '||RADIOGROUP4_DESC QUESTION8,
+              RADIOGROUP5||' '||RADIOGROUP5_DESC QUESTION9,
+
+              DECODE(LENGTH(CHK_2A),Null,'',CHK_2A||' , ') ||
+              DECODE(LENGTH(CHK_2B),Null,'',CHK_2B||' , ') || 
+              DECODE(LENGTH(CHK_2C),Null,'',CHK_2C||' , ') ||
+              DECODE(LENGTH(CHK_2D),Null,'',CHK_2D||' , ') ||
+              DECODE(LENGTH(CHK_2E),Null,'',CHK_2E||' , ')    QUESTION10,        
+              
+              DECODE(LENGTH(CHK_3A),Null,'',CHK_3A||' , ') ||
+              DECODE(LENGTH(CHK_3B),Null,'',CHK_3B||' , ') || 
+              DECODE(LENGTH(CHK_3C),Null,'',CHK_3C||' , ')    QUESTION11 FROM ANNUAL_PLAN 
+WHERE ANNUAL_PLAN_WARD=:Ward 
+AND ANNUAL_PLAN_YEAR=:Year
+</CommandText>
+        <QueryParameters>
+          <QueryParameter Name=":Ward">
+            <Value>=Parameters!Ward.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name=":Year">
+            <Value>=Parameters!Year.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields >
+        <Field Name="QUESTION5">
+          <DataField>QUESTION5</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="QUESTION6">
+          <DataField>QUESTION6</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="QUESTION7">
+          <DataField>QUESTION7</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="QUESTION8">
+          <DataField>QUESTION8</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="QUESTION9">
+          <DataField>QUESTION9</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="QUESTION10">
+          <DataField>QUESTION10</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+        <Field Name="QUESTION11">
+          <DataField>QUESTION11</DataField>
+          <TypeName>System.String</TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="Ward">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>6429</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>Ward:</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="Year">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>2014</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>Year:</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <DataSources >
+    <DataSource Name="DS1">
+      <ConnectionProperties>
+        <DataProvider>Oracle</DataProvider>
+        <ConnectString>user id=develope;password=merlin;data source=gpdc</ConnectString>
+        <IntegratedSecurity>false</IntegratedSecurity>
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+</Report>

@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <Description>
+  </Description>
+  <Author>
+  </Author>
+  <PageHeight>11in</PageHeight>
+  <PageWidth>8.5in</PageWidth>
+  <Width>7.5in</Width>
+  <TopMargin>.25in</TopMargin>
+  <LeftMargin>.25in</LeftMargin>
+  <RightMargin>.25in</RightMargin>
+  <BottomMargin>.25in</BottomMargin>
+  <DataSets>
+    <DataSet Name="Data">
+      <Query>
+        <DataSourceName>DS1</DataSourceName>
+        <CommandText>SELECT TO_CHAR(SYSDATE-366,'YYYY') YEAR FROM DUAL</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="YEAR">
+          <DataField>YEAR</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <PageHeader>
+    <Height>0.0pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+  </PageHeader>
+  <Body>
+    <Height>469.4pt</Height>
+    <ReportItems>
+      <List Name="List1">
+        <DataSetName>Data</DataSetName>
+        <Height>419.68pt</Height>
+        <NoRows>Query returned no rows!</NoRows>
+        <Width>561.59pt</Width>
+        <ReportItems>
+          <Textbox Name="Textbox1">
+            <Height>368.87pt</Height>
+            <Width>513.03pt</Width>
+            <Value>=Parameters!Text.Value + "
+
+Copies of the admission package(s) are maintained at the office of the Guardian."</Value>
+            <Left>60.24pt</Left>
+            <Top>33.40pt</Top>
+            <Style>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontFamily>Courier New</FontFamily>
+              <FontSize>11pt</FontSize>
+            </Style>
+            <CanGrow>true</CanGrow>
+            <CanShrink>true</CanShrink>
+          </Textbox>
+          <Textbox Name="Textbox2" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>14.00pt</Height>
+            <Width>60.51pt</Width>
+            <Value>Location</Value>
+            <Left>55.3pt</Left>
+            <Top>17.6pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+              <TextDecoration>Underline</TextDecoration>
+            </Style>
+            <Visibility>
+              <Hidden>=Globals!PageNumber &gt; 1</Hidden>
+              <ToggleItem>
+              </ToggleItem>
+            </Visibility>
+            <CanGrow>true</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox3" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>14.00pt</Height>
+            <Width>59.01pt</Width>
+            <Value>Admitted</Value>
+            <Left>303.3pt</Left>
+            <Top>17.6pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+              <TextDecoration>Underline</TextDecoration>
+            </Style>
+            <Visibility>
+              <Hidden>=Globals!PageNumber &gt; 1</Hidden>
+              <ToggleItem>
+              </ToggleItem>
+            </Visibility>
+            <CanGrow>true</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox4" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>14.pt</Height>
+            <Width>520pt</Width>
+            <Value>="The Ward was also maintained or resided at the following other locations between "  + Parameters!StartDate.Value + " and  " + Parameters!EndDate.Value + ":"</Value>
+            <Left>42.4pt</Left>
+            <Top>0.0pt</Top>
+            <Style>
+              <TextAlign>Left</TextAlign>
+              <PaddingRight>2pt</PaddingRight>
+              <BorderStyle>
+                <Default>None</Default>
+                <Left>None</Left>
+                <Right>None</Right>
+                <Top>None</Top>
+                <Bottom>None</Bottom>
+              </BorderStyle>
+              <BorderColor />
+              <BorderWidth />
+              <FontSize>11pt</FontSize>
+              <FontFamily>Arial</FontFamily>
+              <FontWeight>Bold</FontWeight>
+            </Style>
+            <Visibility>
+              <Hidden>=Globals!PageNumber &gt; 1</Hidden>
+              <ToggleItem>
+              </ToggleItem>
+            </Visibility>
+            <CanGrow>true</CanGrow>
+          </Textbox>
+          <Textbox Name="Textbox5" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2005/01/reportdefinition">
+            <Height>12.75pt</Height>
+            <Width>18.85pt</Width>
+            <Value>4.</Value>
+            <Left>16.0pt</Left>
+            <Top>0.0pt</Top>
+            <Style>
+              <FontSize>11pt</FontSize>
+              <BorderStyle />
+              <BorderColor />
+              <BorderWidth />
+              <FontWeight>Bold</FontWeight>
+            </Style>
+          </Textbox>
+        </ReportItems>
+        <Style>
+          <BorderStyle />
+          <BorderColor />
+          <BorderWidth />
+        </Style>
+        <Left>0.00pt</Left>
+        <Top>0.00pt</Top>
+        <PageBreakAtEnd>false</PageBreakAtEnd>
+        <PageBreakAtStart>false</PageBreakAtStart>
+      </List>
+    </ReportItems>
+    <Columns>1</Columns>
+  </Body>
+  <PageFooter>
+    <Height>0.0pt</Height>
+    <PrintOnFirstPage>true</PrintOnFirstPage>
+    <PrintOnLastPage>true</PrintOnLastPage>
+  </PageFooter>
+  <DataElementName>Report</DataElementName>
+  <DataElementStyle>AttributeNormal</DataElementStyle>
+  <DataSources>
+    <DataSource Name="DS1">
+      <ConnectionProperties>
+        <DataProvider>Oracle</DataProvider>
+        <ConnectString>user id=develope;password=merlin;data source=gpdc</ConnectString>
+        <IntegratedSecurity>false</IntegratedSecurity>
+      </ConnectionProperties>
+    </DataSource>
+  </DataSources>
+  <ReportParameters>
+    <ReportParameter Name="Text">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>Text</Value>
+        </Values>
+      </DefaultValue>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>text</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="StartDate">
+      <DataType>String</DataType>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>StartDate</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="EndDate">
+      <DataType>String</DataType>
+      <Nullable>false</Nullable>
+      <AllowBlank>false</AllowBlank>
+      <MultiValue>false</MultiValue>
+      <Prompt>EndDate</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+</Report>
