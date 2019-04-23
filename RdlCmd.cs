@@ -239,6 +239,7 @@ namespace fyiReporting.RdlCmd
                 // rc.returnCode = returnCode;  // MBG 08/15/15
                 rr.DoRender(pdfTargetFolder, files, types, ward.getWardNumber().ToString(), StartDate, EndDate);                                   //   create the AnnualAccounting PDF document
                 document = new MergeDocument(document1);
+                document = new MergeDocument(System.IO.Path.Combine(pdfTargetFolder, ward.getWardNumber() + "_temporary.pdf"));
 
                 //   B E G I N       M E R G E   O F   P D F    D O C U M E N T S           
 
@@ -378,18 +379,12 @@ namespace fyiReporting.RdlCmd
             decimal guardianLetterCount = 0;
             decimal cjisMemoCount = 0;
             WardDocument[] wardDocArray;
-            //string[] types = null;
-            //types = new string[] { "pdf" };
             string pdfTargetFolder = null;
 
             PdfDocument profilePDF = null;
-            PdfDocument memoPDF = null;
-            PdfDocument authPDF = null;
             MergeDocument document = new MergeDocument();
 
             string cjisProfileURL = ConfigurationManager.AppSettings["CJIS_ProfileURL"];
-            string cjisMemoURL = ConfigurationManager.AppSettings["CJIS_MemoURL"];
-            string cjisAuthURL = ConfigurationManager.AppSettings["CJIS_AuthURL"];
 
             guardianLetterCount = dh.getguardianLetterCount(ward.getWardNumber(), connection);          // count all of the documents we need, doctype "GRDLET"
 
@@ -404,37 +399,16 @@ namespace fyiReporting.RdlCmd
 
 
             string profileDocumentPath = System.IO.Path.Combine(pdfTargetFolder, ward.getWardNumber() + "_Profile.pdf");        // the document created by Jasper
-            string memoDocumentPath = System.IO.Path.Combine(pdfTargetFolder, ward.getWardNumber() + "_Memo.pdf");
-            string authDocumentPath = System.IO.Path.Combine(pdfTargetFolder, ward.getWardNumber() + "_Auth.pdf");
-            string document2;
-
+                      
             /*    C R E A T E    T H E  3  B A S E  C J I S    R E P O R T S */
             WebClient client = new WebClient();
             string url = cjisProfileURL + ward.getWardNumber();
             client.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
             client.DownloadFile(url, profileDocumentPath);
 
-            url = cjisMemoURL + ward.getWardNumber();
-            client.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
-            client.DownloadFile(url, memoDocumentPath);
 
-            url = cjisAuthURL + ward.getWardNumber();
-            client.Headers.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
-            client.DownloadFile(url, authDocumentPath);
-
-            if (File.Exists(memoDocumentPath))
-            {            // make the downloaded documents pdf objects and prepare to merge them
-                cjisMemoCount = 1;
-                profilePDF = new PdfDocument(profileDocumentPath);
-                memoPDF = new PdfDocument(memoDocumentPath);
-                authPDF = new PdfDocument(authDocumentPath);
-
-                document = new MergeDocument(profilePDF);
-                document.Append(memoPDF, 1, 1);     // add only the first page
-                document.Append(authPDF, 1, 1);     // add the SSN authorization document
-
-            }
-
+            profilePDF = new PdfDocument(profileDocumentPath);
+            document = new MergeDocument(profilePDF);
 
             if (wardDocArray.Length > 0 && ward.getStatus() != "X")    // if we have a letter of Guardianship
             {
@@ -447,18 +421,25 @@ namespace fyiReporting.RdlCmd
                 Console.WriteLine("output folder is: {0}", pdfTargetFolder);
                 // loop over any additional documents here and merge with the Ward Profile pdf
 
-                foreach (WardDocument w in wardDocArray)
+                try
                 {
-                    if (File.Exists(System.IO.Path.Combine(w.getStoragePath(), w.getDocPath())))
+                    foreach (WardDocument w in wardDocArray)
                     {
-                        document.Append(System.IO.Path.Combine(w.getStoragePath(), w.getDocPath()));
+                        if (File.Exists(System.IO.Path.Combine(w.getStoragePath(), w.getDocPath())))
+                        {
+                            document.Append(System.IO.Path.Combine(w.getStoragePath(), w.getDocPath()));
+                        }
+                        else
+                        {
+                            System.IO.File.AppendAllText(@logFile, "Could not find ward document: " + w.getStoragePath() + "\\" + w.getDocPath() + " - " + DateTime.Now + "\r\n");
+                        }
                     }
-                    else
-                    {
-                        System.IO.File.AppendAllText(@logFile, "Could not find ward document: " + w.getStoragePath() + "\\" + w.getDocPath() + " - " + DateTime.Now + "\r\n");
-                    }
-                }
 
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Letters of Guardianship should exist but could not be found for ward {0}", ward.getWardNumber());
+                }
             }
             else
             {
@@ -466,16 +447,13 @@ namespace fyiReporting.RdlCmd
                 System.IO.File.AppendAllText(@logFile, "Ward: " + ward.getWardNumber() + " Missing Letter of Gurardianship or CJIS Memorandum " + DateTime.Now + "\r\n");
 
             }
+           
 
-            ceTe.DynamicPDF.PageList pl = new PageList();
-            pl = document.Pages;
-            document2 = System.IO.Path.Combine(pdfTargetFolder, ward.getWardNumber() + "_CJISMemo_" + pl.Count.ToString() + ".pdf"); // name of the final output document
-            document.Draw(document2);
-            File.Delete(profileDocumentPath);      // delete the profile.pdf
-            File.Delete(memoDocumentPath);         // delete the memo.pdf   
-            File.Delete(authDocumentPath);         // delete the auth.pdf                            
-            document2 = null;
-            dh.updateCJISStatus(ward.getWardNumber(), guardianLetterCount, cjisMemoCount, connection,ward.getStatus());
+
+
+            document.Draw(System.IO.Path.Combine(pdfTargetFolder, ward.getWardNumber() + "_CJISMemo_" + document.Pages.Count.ToString() + ".pdf")); // name of the final output document
+            File.Delete(profileDocumentPath);      // delete the profile.pdf                   
+            dh.updateCJISStatus(ward.getWardNumber(), guardianLetterCount, cjisMemoCount, connection, ward.getStatus());
             connection.Close();
 
 
